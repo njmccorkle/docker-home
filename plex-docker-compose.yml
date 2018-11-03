@@ -1,0 +1,22 @@
+version: '2'
+services:
+  plex:
+    image: plexinc/pms-docker
+    hostname: plex
+    environment:
+      HOSTNAME: plex
+      TZ: America/Chicago
+      PLEX_CLAIM: claim-tobVLsrprAfrT4P8qfVQ
+    stdin_open: true
+    volumes:
+    - /mnt/docker/plex/config:/config
+    - /mnt/docker/plex/transcode:/transcode
+    - /mnt/media:/mnt/media
+    dns:
+    - 10.1.1.1
+    domainname: mccorkle.co
+    tty: true
+    ports:
+    - 32400:32400/tcp
+    labels:
+      io.rancher.container.pull_image: always
