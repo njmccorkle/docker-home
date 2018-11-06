@@ -1,5 +1,27 @@
 version: '2'
 services:
+  sabnzbd:
+    image: linuxserver/sabnzbd
+    hostname: sabnzbd
+    environment:
+      TZ: America/Chicago
+      PUID: '1013'
+      PGID: '1013'
+    stdin_open: true
+    volumes:
+    - /mnt/media/download-sabnzbd:/incomplete-downloads
+    - /mnt/media/download-complete:/downloads
+    - /mnt/media/watch:/watch
+    - /mnt/docker/sabnzbd:/config
+    dns:
+    - 10.1.1.1
+    domainname: mccorkle.co
+    tty: true
+    ports:
+    - 8181:8080/tcp
+    - 9191:9090/tcp
+    labels:
+      io.rancher.container.pull_image: always
   plex:
     image: plexinc/pms-docker
     hostname: plex
@@ -8,6 +30,7 @@ services:
       TZ: America/Chicago
       PLEX_CLAIM: claim-tobVLsrprAfrT4P8qfVQ
     stdin_open: true
+    network_mode: host
     volumes:
     - /mnt/docker/plex/config:/config
     - /mnt/docker/plex/transcode:/transcode
@@ -18,5 +41,14 @@ services:
     tty: true
     ports:
     - 32400:32400/tcp
+    - 1900:1900/udp
+    - 3005:3005/tcp
+    - 5353:5353/udp
+    - 8324:8324/tcp
+    - 32410:32410/udp
+    - 32412:32412/udp
+    - 32413:32413/udp
+    - 32414:32414/udp
+    - 32469:32469/tcp
     labels:
       io.rancher.container.pull_image: always
