@@ -10,8 +10,8 @@ services:
       SMTP_PORT: '587'
       SMTP_DOMAIN: mccorkle.co
       SMTP_AUTHENTICATION: login
-      SMTP_USER_NAME: apikey
-      SMTP_PASSWORD: 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
+      SMTP_USER_NAME: "apikey"
+      SMTP_PASSWORD: "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"
     stdin_open: true
     volumes:
     - /mnt/docker/openproject/pgdata:/var/lib/postgresql/9.6/main
@@ -24,4 +24,4 @@ services:
     ports:
     - 8282:80/tcp
     labels:
-      io.rancher.container.pull_image: always
+      ['io.rancher.container.pull_image:always']
