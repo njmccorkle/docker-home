@@ -1,0 +1,27 @@
+version: '2'
+services:
+  openproject:
+    image: openproject/community:8
+    hostname: openproject
+    environment:
+      EMAIL_DELIVERY_METHOD: smtp
+      SECRET_KEY_BASE: secret
+      SMTP_ADDRESS: smtp.sendgrid.net
+      SMTP_PORT: '587'
+      SMTP_DOMAIN: mccorkle.co
+      SMTP_AUTHENTICATION: login
+      SMTP_USER_NAME: apikey
+      SMTP_PASSWORD: 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
+    stdin_open: true
+    volumes:
+    - /mnt/docker/openproject/pgdata:/var/lib/postgresql/9.6/main
+    - /mnt/docker/openproject/logs:/var/log/supervisor
+    - /mnt/docker/openproject/static:/var/db/openproject
+    dns:
+    - 10.1.1.1
+    domainname: mccorkle.co
+    tty: true
+    ports:
+    - 8282:80/tcp
+    labels:
+      io.rancher.container.pull_image: always
