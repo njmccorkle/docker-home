@@ -9,3 +9,6 @@ services:
   sonarr:
     scale: 1
     start_on_create: true
+  couchpotato:
+    scale: 1
+    start_on_create: true
