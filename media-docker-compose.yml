@@ -9,10 +9,8 @@ services:
       PGID: '1013'
     stdin_open: true
     volumes:
-    - /mnt/media/download-sabnzbd:/incomplete-downloads
-    - /mnt/media/download-complete:/downloads
-    - /mnt/media/watch:/watch
     - /mnt/docker/sabnzbd:/config
+    - /mnt/media:/mnt/media
     dns:
     - 10.1.1.1
     domainname: mccorkle.co
