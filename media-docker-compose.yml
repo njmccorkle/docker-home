@@ -52,3 +52,20 @@ services:
     - 32469:32469/tcp
     labels:
       io.rancher.container.pull_image: always
+  sonarr:
+    image: linuxserver/sonarr
+    hostname: sonarr
+    environment:
+      TZ: America/Chicago
+    stdin_open: true
+    volumes:
+    - /mnt/docker/sonarr:/config
+    - /mnt/media:/mnt/media
+    dns:
+    - 10.1.1.1
+    domainname: mccorkle.co
+    tty: true
+    ports:
+    - 8989:8989/tcp
+    labels:
+      io.rancher.container.pull_image: always
