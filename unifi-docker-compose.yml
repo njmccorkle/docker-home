@@ -1,0 +1,24 @@
+version: '2'
+services:
+  unifi:
+    image: jacobalberty/unifi:stable
+    hostname: unifi
+    environment:
+      TZ: America/Chicago
+    stdin_open: true
+    volumes:
+    - /mnt/docker/unifi:/unifi
+    dns:
+    - 10.1.1.1
+    domainname: mccorkle.co
+    tty: true
+    ports:
+    - 8080:8080/tcp
+    - 8443:8443/tcp
+    - 8843:8843/tcp
+    - 8880:8880/tcp
+    - 3478:3478/udp
+    - 6789:6789/tcp
+    - 10001:10001/udp
+    labels:
+      io.rancher.container.pull_image: always
