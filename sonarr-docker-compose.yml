@@ -4,6 +4,8 @@ services:
     image: linuxserver/sonarr
     hostname: sonarr
     environment:
+      PUID: '1013'
+      PGID: '1013'
       TZ: America/Chicago
     stdin_open: true
     volumes:
