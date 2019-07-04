@@ -1,9 +1,21 @@
 version: '2'
 services:
   plex:
-    container_name: plex
     image: plexinc/pms-docker
     restart: unless-stopped
+    environment:
+      HOSTNAME: plex
+      PLEX_CLAIM: claim-tobVLsrprAfrT4P8qfVQ
+      TZ: America/Chicago
+      ADVERTISE_IP: http://10.1.1.61:32400/
+    volumes:
+    - /mnt/docker/plex/config:/config
+    - /mnt/docker/plex/transcode:/transcode
+    - /mnt/media:/mnt/media
+    dns:
+    - 10.1.1.1
+    hostname: plex
+    domainname: mccorkle.co
     ports:
     - 32400:32400/tcp
     - 1900:1900/udp
@@ -15,18 +27,5 @@ services:
     - 32413:32413/udp
     - 32414:32414/udp
     - 32469:32469/tcp
-    environment:
-      HOSTNAME: plex
-      PLEX_CLAIM: claim-tobVLsrprAfrT4P8qfVQ
-      TZ: America/Chicago
-      ADVERTISE_IP: http://10.1.1.61:32400/
-    hostname: plex
-    dns:
-    - 10.1.1.1
-    domainname: mccorkle.co
-    volumes:
-    - /mnt/docker/plex/config:/config
-    - /mnt/docker/plex/transcode:/transcode
-    - /mnt/media:/mnt/media
     labels:
       io.rancher.container.pull_image: always
