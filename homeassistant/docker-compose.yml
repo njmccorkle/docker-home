@@ -1,0 +1,23 @@
+version: '2'
+services:
+  homeassistant:
+    image: homeassistant/home-assistant
+    network_mode: host
+    hostname: homeassistant
+    environment:
+      TZ: America/Chicago
+    volumes:
+      - /mnt/docker/homeassistant:/config
+      - /var/log/fail2ban.log:/var/log/fail2ban.log
+    devices:
+      - /dev/zigbee:/dev/zigbee
+      - /dev/zwave:/dev/zwave
+    #dns:
+      #- 10.1.1.1
+    #domainname: mccorkle.co
+    stdin_open: true
+    tty: true
+    ports:
+    - 8123:8123/tcp
+    labels:
+      io.rancher.container.pull_image: always
