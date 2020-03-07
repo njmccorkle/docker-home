@@ -1,0 +1,19 @@
+version: '2'
+services:
+  mosquitto:
+    image: eclipse-mosquitto:latest
+#    network_mode: host
+    hostname: mosquitto 
+    environment:
+      TZ: America/Chicago
+    volumes:
+      - /mnt/docker/mosquitto/config:/mosquitto/config
+      - /mnt/docker/mosquitto/data:/mosquitto/data
+      - /mnt/docker/mosquitto/log:/mosquitto/log
+    stdin_open: true
+    tty: true
+    ports:
+      - 1883:1883
+      - 9001:9001 
+    #labels:
+    #  io.rancher.container.pull_image: always

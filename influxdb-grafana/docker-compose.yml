@@ -1,0 +1,39 @@
+influxdb:
+  # Create config file:
+  # mkdir /mnt/docker/influxdb
+  # mkdir /mnt/docker/influxdb/data
+  # docker run --rm influxdb influxd config > /mnt/docker/influxdb/influxdb.conf
+  image: influxdb:latest
+  container_name: influxdb
+  restart: always
+  ports:
+#    - "8083:8083"
+    - "8086:8086"
+    - "8090:8090"
+#  env_file:
+#    - 'env.influxdb'
+  volumes:
+    # sudo mkdir /mnt/docker/influxdb
+    - /mnt/docker/influxdb/data:/var/lib/influxdb
+    - /mnt/docker/influxdb/influxdb.conf:/etc/influxdb/influxdb.conf:ro
+#    - /mnt/docker/shared:/shared
+
+grafana:
+  # Create file structure:
+  # mkdir /mnt/docker/grafana
+  # mkdir /mnt/docker/grafana/config
+  # mkdir /mnt/docker/grafana/logs
+  # mkdir /mnt/docker/grafana/lib
+  #
+  # Create config file:
+  # docker run --rm --entrypoint cat grafana/grafana /etc/grafana/grafana.ini > /mnt/docker/grafana/config/grafana.ini
+  image: grafana/grafana:latest
+  container_name: grafana
+  ports:
+    - "3000:3000"
+#  env_file:
+#    - "env.grafana"
+  volumes:
+    - /mnt/docker/grafana/lib:/var/lib/grafana
+    - /mnt/docker/grafana/config/grafana.ini:/etc/grafana/grafana.ini:ro
+    - /mnt/docker/grafana/logs:/var/log/grafana

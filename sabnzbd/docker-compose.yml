@@ -2,6 +2,7 @@ version: '2'
 services:
   sabnzbd:
     image: linuxserver/sabnzbd
+    restart: unless-stopped
     hostname: sabnzbd
     environment:
       PGID: '1013'

@@ -2,6 +2,7 @@ version: '2'
 services:
   unifi:
     image: jacobalberty/unifi:stable
+    restart: unless-stopped
     hostname: unifi
     environment:
       TZ: America/Chicago
