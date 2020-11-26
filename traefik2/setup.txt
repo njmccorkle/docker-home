@@ -1,0 +1,44 @@
+# create .env file
+DOMAINNAME=mccorkle.co
+CLOUDFLARE_EMAIL=<<email@email.com>>
+CLOUDFLARE_API_KEY=<<APIKEY>>
+
+#create acme folder and acme.json
+mkdir acme
+touch acme/acme.json
+chmod 600 acme/acme.json
+
+# create traefik log file
+touch traefik.log
+
+#create traefik proxy network
+docker network create t2_proxy
+
+
+
+
+
+
+# create web network
+docker network create web
+
+# Create acme.json for storing SSL certs
+sudo mkdir /opt/traefik
+sudo touch /opt/traefik/acme.json 
+sudo chmod 600 /opt/traefik/acme.json
+
+# create dashboard password
+sudo apt update
+sudo apt install apache2-utils
+echo $(htpasswd -nb dashboardadmin password)
+
+# create traefik environment variables in .env file
+TRAEFIK_DEBUG=true
+TRAEFIK_LOG=true
+TRAEFIK_ACME_EMAIL=njmccorkle@gmail.com
+TRAEFIK_ACME_CASERVER=https://acme-staging-v02.api.letsencrypt.org/directory
+TRAEFIK_BASE_DNS=mccorkle.co
+TRAEFIK_DASHBOARD_HOST=traefik.mccorkle.co
+TRAEFIK_USER_PASS=user:<<htpass created above>>
+CLOUDFLARE_EMAIL=<<email@email.com>>
+CLOUDFLARE_API_KEY=<<APIKEY>>
