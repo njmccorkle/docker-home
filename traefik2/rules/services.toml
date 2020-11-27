@@ -1,0 +1,5 @@
+## Dynamic configuration
+[http.services]
+  [http.services.heatermeter-svc.loadBalancer]
+    [[http.services.heatermeter-svc.loadBalancer.servers]]
+      url = "http://10.1.1.60/"

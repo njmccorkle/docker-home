@@ -84,7 +84,9 @@ services:
       - "traefik.http.routers.http-catchall.rule=HostRegexp(`{host:.+}`)"
       - "traefik.http.routers.http-catchall.middlewares=redirect-to-https"
       - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
-      # HTTP Routers
+
+  # Routers
+      # Traefik dashboard
       - "traefik.http.routers.traefik-rtr.entrypoints=https"
       - "traefik.http.routers.traefik-rtr.rule=Host(`traefik.$DOMAINNAME`)"
       - "traefik.http.routers.traefik-rtr.tls=true"
@@ -93,10 +95,20 @@ services:
       - "traefik.http.routers.traefik-rtr.tls.domains[0].sans=*.$DOMAINNAME"
 #      - "traefik.http.routers.traefik-rtr.tls.domains[1].main=$SECONDDOMAINNAME" # Pulls main cert for second domain
 #      - "traefik.http.routers.traefik-rtr.tls.domains[1].sans=*.$SECONDDOMAINNAME" # Pulls wildcard cert for second domain
-      ## Services - API
+
+      # Heatermeter
+      - "traefik.http.routers.heatermeter-rtr.entrypoints=https"
+      - "traefik.http.routers.heatermeter-rtr.service=heatermeter-svc@file"
+      - "traefik.http.routers.heatermeter-rtr.rule=Host(`heatermeter.$DOMAINNAME`)"
+      - "traefik.http.routers.heatermeter-rtr.tls=true"
+
+  # Services
+      # API
       - "traefik.http.routers.traefik-rtr.service=api@internal"
-      ## Middlewares
+
+  # Middlewares
       - "traefik.http.routers.traefik-rtr.middlewares=chain-basic-auth@file" 
+
   testApp:
     container_name: testApp
     image: containous/whoami:v1.3.0
