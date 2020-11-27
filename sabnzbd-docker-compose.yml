@@ -1,0 +1,32 @@
+version: '3'
+
+services:
+  sabnzbd:
+    image: linuxserver/sabnzbd
+    container_name: sabnzbd
+    restart: unless-stopped
+    networks:
+      - t2_proxy
+    security_opt:
+      - no-new-privileges:true
+    ports:
+      - $SABNZBD_PORT:8080
+    volumes:
+      - /mnt/docker/sabnzbd:/config
+      - /mnt/media:/mnt/media
+    environment:
+      PGID: '1013'
+      PUID: '1013'
+      TZ: $TZ
+    stdin_open: true
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.sabnzbd-rtr.entrypoints=https
+      - traefik.http.routers.sabnzbd-rtr.rule=Host(`sabnzbd.$DOMAINNAME`)
+      - traefik.http.routers.sabnzbd-rtr.tls=true
+      - traefik.http.routers.sabnzbd-rtr.middlewares=chain-no-auth@file
+      - traefik.http.services.sabnzbd-svc.loadbalancer.server.port=8181
+      
+networks:
+  t2_proxy:
+    external: true
