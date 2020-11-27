@@ -1,3 +1,2 @@
 .env
 traefik2/acme/acme.json
-traefik2/acme/test.json
