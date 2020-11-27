@@ -9,8 +9,6 @@ services:
       - t2_proxy
     security_opt:
       - no-new-privileges:true
-    ports:
-      - $SONARR_PORT:8989
     volumes:
       - /mnt/docker/sonarr:/config
       - /mnt/media:/mnt/media
