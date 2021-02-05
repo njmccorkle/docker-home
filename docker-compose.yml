@@ -1,12 +1,26 @@
 version: "3.7"
 
 ########################### NETWORKS
+# docker network create t2_proxy
+# docker network create socket_proxy
+
 networks:
   t2_proxy:
     external:
       name: t2_proxy
   default:
     driver: bridge
+
+########################### SECRETS
+secrets:
+  cloudflare_email:
+    file: $SECRETSDIR/cloudflare_email
+  cloudflare_api_key:
+    file: $SECRETSDIR/cloudflare_api_key
+  authelia_notifier_smtp_password:
+    file: $SECRETSDIR/authelia_notifier_smtp_password
+  authelia_jwt_secret:
+    file: $SECRETSDIR/authelia_jwt_secret
 
 ########################### SERVICES
 services:
@@ -26,10 +40,8 @@ services:
       - --entrypoints.https.forwardedHeaders.trustedIPs=173.245.48.0/20,103.21.244.0/22,103.22.200.0/22,103.31.4.0/22,141.101.64.0/18,108.162.192.0/18,190.93.240.0/20,188.114.96.0/20,197.234.240.0/22,198.41.128.0/17,162.158.0.0/15,104.16.0.0/12,172.64.0.0/13,131.0.72.0/22
       - --entryPoints.traefik.address=:8080
       - --api=true
-      # - --api.insecure=true
-      # - --serversTransport.insecureSkipVerify=true
       - --log=true
-      - --log.level=DEBUG # (Default: error) DEBUG, INFO, WARN, ERROR, FATAL, PANIC
+      - --log.level=INFO # (Default: error) DEBUG, INFO, WARN, ERROR, FATAL, PANIC
       - --accessLog=true
       - --accessLog.filePath=/traefik.log
       - --accessLog.bufferingSize=100 # Configuring a buffer of 100 lines
@@ -41,11 +53,10 @@ services:
       - --providers.docker.network=t2_proxy
       - --providers.docker.swarmMode=false
       - --providers.file.directory=/rules # Load dynamic configuration from one or more .toml or .yml files in a directory.
-#      - --providers.file.filename=/path/to/file # Load dynamic configuration from a file.
       - --providers.file.watch=true # Only works on top level files in the rules folder
       # - --certificatesResolvers.dns-cloudflare.acme.caServer=https://acme-staging-v02.api.letsencrypt.org/directory # LetsEncrypt Staging Server - uncomment when testing
       - --certificatesResolvers.dns-cloudflare.acme.caServer=https://acme-v02.api.letsencrypt.org/directory # LetsEncrypt Production Server
-      - --certificatesResolvers.dns-cloudflare.acme.email=$CLOUDFLARE_EMAIL
+      - --certificatesResolvers.dns-cloudflare.acme.email=/run/secrets/cloudflare_email
       - --certificatesResolvers.dns-cloudflare.acme.storage=/acme.json
       - --certificatesResolvers.dns-cloudflare.acme.dnsChallenge.provider=cloudflare
       - --certificatesResolvers.dns-cloudflare.acme.dnsChallenge.resolvers=1.1.1.1:53,1.0.0.1:53
@@ -75,9 +86,13 @@ services:
       - $DOCKERDIR/traefik2/acme/acme.json:/acme.json
       - $DOCKERDIR/traefik2/traefik.log:/traefik.log 
       - $DOCKERDIR/shared:/shared
+    secrets:
+      - cloudflare_email
+      - cloudflare_api_key
     environment:
-      - CF_API_EMAIL=$CLOUDFLARE_EMAIL
-      - CF_API_KEY=$CLOUDFLARE_API_KEY
+      - CF_API_EMAIL_FILE=/run/secrets/cloudflare_email
+      - CF_API_KEY_FILE=/run/secrets/cloudflare_api_key
+    
     labels:
       - "traefik.enable=true"
       # HTTP-to-HTTPS Redirect
@@ -102,6 +117,12 @@ services:
       - "traefik.http.routers.heatermeter-rtr.service=heatermeter-svc@file"
       - "traefik.http.routers.heatermeter-rtr.rule=Host(`heatermeter.$DOMAINNAME`)"
       - "traefik.http.routers.heatermeter-rtr.tls=true"
+
+      # homeassistant
+      - "traefik.http.routers.homeassistant-rtr.entrypoints=https"
+      - "traefik.http.routers.homeassistant-rtr.service=homeassistant-svc@file"
+      - "traefik.http.routers.homeassistant-rtr.rule=Host(`homeassistant.$DOMAINNAME`)"
+      - "traefik.http.routers.homeassistant-rtr.tls=true"
 
   # Services
       # API
@@ -132,119 +153,159 @@ services:
       # - "traefik.http.routers.testApp-rtr.service=testApp-svc"
       # - "traefik.http.services.testApp-svc.loadbalancer.server.port=9000"
 
+  # Authelia (Lite) - Self-Hosted Single Sign-On and Two-Factor Authentication
+  authelia:
+    container_name: authelia
+    # image: authelia/authelia:latest
+    image: authelia/authelia:4.21.0
+    restart: always
+    networks:
+      - t2_proxy
+    # depends_on:
+    #   - mariadb
+    #   - redis
+    volumes:
+      - $DOCKERDIR/authelia:/config
+    environment:
+      - TZ=$TZ
+      - AUTHELIA_NOTIFIER_SMTP_PASSWORD_FILE=/run/secrets/authelia_notifier_smtp_password
+      - AUTHELIA_JWT_SECRET_FILE=/run/secrets/authelia_jwt_secret
+      # - CF_API_KEY=$CLOUDFLARE_API_KEY
+      
+      # - AUTHELIA_SESSION_SECRET_FILE=/run/secrets/authelia_session_secret
+      # - AUTHELIA_STORAGE_MYSQL_PASSWORD_FILE=/run/secrets/authelia_storage_mysql_password
+      # - 
+      # - AUTHELIA_DUO_API_SECRET_KEY_FILE=/run/secrets/authelia_duo_api_secret_key
+    secrets:
+      - authelia_notifier_smtp_password
+      - authelia_jwt_secret
+    #   - authelia_session_secret
+    #   - authelia_storage_mysql_password
+    #   - authelia_duo_api_secret_key
+    labels:
+      - "traefik.enable=true"
+      ## HTTP Routers
+      - "traefik.http.routers.authelia-rtr.entrypoints=https"
+      - "traefik.http.routers.authelia-rtr.rule=Host(`auth.$DOMAINNAME`)"
+      - "traefik.http.routers.authelia-rtr.tls=true"
+      ## Middlewares
+      - "traefik.http.routers.authelia-rtr.middlewares=chain-authelia@file"
+      ## HTTP Services
+      - "traefik.http.routers.authelia-rtr.service=authelia-svc"
+      - "traefik.http.services.authelia-svc.loadbalancer.server.port=9091"
+  
+  sabnzbd:
+    image: linuxserver/sabnzbd
+    container_name: sabnzbd
+    restart: unless-stopped
+    networks:
+      - t2_proxy
+    security_opt:
+      - no-new-privileges:true
+    # ports:
+    #   - $SABNZBD_PORT:8080
+    volumes:
+      - /mnt/docker/sabnzbd:/config
+      - /mnt/media:/mnt/media
+    environment:
+      PUID: '1013'
+      PGID: '1013'
+      TZ: $TZ
+    stdin_open: true
+    labels:
+      - "traefik.enable=true"
+      ## HTTP Routers Auth Bypass
+      - "traefik.http.routers.sabnzbd-rtr-bypass.entrypoints=https"
+      - "traefik.http.routers.sabnzbd-rtr-bypass.rule=Host(`sabnzbd.$DOMAINNAME`) && Query(`apikey`, `$SABNZBD_API_KEY`)"
+      - traefik.http.routers.sabnzbd-rtr-bypass.tls=true
+      - "traefik.http.routers.sabnzbd-rtr-bypass.priority=100"
+      ## HTTP Routers Auth
+      - "traefik.http.routers.sabnzbd-rtr.entrypoints=https"
+      - "traefik.http.routers.sabnzbd-rtr.rule=Host(`sabnzbd.$DOMAINNAME`)"
+      - traefik.http.routers.sabnzbd-rtr.tls=true
+      - "traefik.http.routers.sabnzbd-rtr.priority=99"
+      # Middlewares
+      - "traefik.http.routers.sabnzbd-rtr-bypass.middlewares=chain-no-auth@file"
+      - "traefik.http.routers.sabnzbd-rtr.middlewares=chain-authelia@file"
+      # HTTP Services
+      - "traefik.http.routers.sabnzbd-rtr.service=sabnzbd-svc"
+      - "traefik.http.routers.sabnzbd-rtr-bypass.service=sabnzbd-svc"
+      - "traefik.http.services.sabnzbd-svc.loadbalancer.server.port=8080"
+  
+  couchpotato:
+    image: linuxserver/couchpotato
+    container_name: couchpotato
+    restart: unless-stopped
+    networks:
+      - t2_proxy
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - /mnt/docker/couchpotato:/config
+      - /mnt/media:/mnt/media
+    environment:
+      PUID: '1013'
+      PGID: '1013'
+      TZ: $TZ
+    # labels:
+    #   - traefik.enable=true
+    #   - traefik.http.routers.couchpotato-rtr.entrypoints=https
+    #   - traefik.http.routers.couchpotato-rtr.rule=Host(`couchpotato.$DOMAINNAME`)
+    #   - traefik.http.routers.couchpotato-rtr.tls=true
+    #   # - traefik.http.routers.couchpotato-rtr.middlewares=chain-no-auth@file
+    #   - traefik.http.routers.couchpotato-rtr.middlewares=chain-authelia@file
+    #   - traefik.http.services.couchpotato-svc.loadbalancer.server.port=5050
+    labels:
+      - "traefik.enable=true"
+      ## HTTP Routers Auth Bypass
+      - "traefik.http.routers.couchpotato-rtr-bypass.entrypoints=https"
+      - "traefik.http.routers.couchpotato-rtr-bypass.rule=Host(`couchpotato.$DOMAINNAME`) && (Headers(`X-Api-Key`, `$COUCHPOTATO_API_KEY`) || Query(`apikey`, `$COUCHPOTATO_API_KEY`))"
+      - traefik.http.routers.couchpotato-rtr-bypass.tls=true
+      - "traefik.http.routers.couchpotato-rtr-bypass.priority=100"
+      ## HTTP Routers Auth
+      - "traefik.http.routers.couchpotato-rtr.entrypoints=https"
+      - "traefik.http.routers.couchpotato-rtr.rule=Host(`couchpotato.$DOMAINNAME`)"
+      - traefik.http.routers.couchpotato-rtr.tls=true
+      - "traefik.http.routers.couchpotato-rtr.priority=99"
+      ## Middlewares
+      - "traefik.http.routers.couchpotato-rtr-bypass.middlewares=chain-no-auth@file"
+      - "traefik.http.routers.couchpotato-rtr.middlewares=chain-authelia@file"
+      ## HTTP Services
+      - "traefik.http.routers.couchpotato-rtr.service=couchpotato-svc"
+      - "traefik.http.routers.couchpotato-rtr-bypass.service=couchpotato-svc"
+      - "traefik.http.services.couchpotato-svc.loadbalancer.server.port=5050"
 
-
-
-
-
-
-
-
-
-
-
-
-
-######################################################
-# networks:
-#   web:
-#     external: true
-
-
-# services:
-#   traefik-reverse-proxy:
-#     container_name: traefik
-#     image: traefik:v2.2.1
-#     command:
-#       - --api=true
-#       - --api.dashboard=true
-#       - --entrypoints.web.address=:80
-#       - --entrypoints.websecure.address=:443
-#       - --entrypoints.websecure.http.tls.domains[0].main=$TRAEFIK_BASE_DNS
-#       - --entrypoints.websecure.http.tls.domains[0].sans=.$TRAEFIK_BASE_DNS
-#       - --certificatesresolvers.cloudflare.acme.email=$TRAEFIK_ACME_EMAIL
-#       - --certificatesresolvers.cloudflare.acme.dnschallenge=true
-#       - --certificatesresolvers.cloudflare.acme.dnschallenge.delaybeforecheck=0
-#       - --certificatesresolvers.cloudflare.acme.dnschallenge.provider=cloudflare
-#       - --certificatesresolvers.cloudflare.acme.dnschallenge.resolvers[0]=1.1.1.1:53
-#       - --certificatesresolvers.cloudflare.acme.dnschallenge.resolvers[1]=8.8.8.8:53
-#       - --certificatesresolvers.cloudflare.acme.caServer=$TRAEFIK_ACME_CASERVER
-#       - --certificatesresolvers.cloudflare.acme.storage=/acme.json
-#       - --api.debug=$TRAEFIK_DEBUG
-#       - --log=$TRAEFIK_LOG
-#       # - --log.level=ERROR
-#       - --log.level=DEBUG
-#       - --providers.docker=true
-#       - --providers.docker.exposedbydefault=false
-#       - --providers.docker.network=web
-#     restart: unless-stopped
-#     networks:
-#       - web
-#     ports:
-#       - '80:80'
-#       - '443:443'
-#     expose:
-#         - 8080
-#     labels:
-#       - traefik.enable=true
-#       - traefik.network=web
-#       - traefik.port=8080
-#       - traefik.http.routers.traefik.service=api@internal
-#       - traefik.http.routers.traefik.rule=Host(`$TRAEFIK_DASHBOARD_HOST`)
-#       - traefik.http.routers.traefik.middlewares=traefik-auth
-#       - traefik.http.middlewares.traefik-auth.basicauth.users=$TRAEFIK_USER_PASS
-#     volumes:
-#       - /var/run/docker.sock:/var/run/docker.sock:ro
-#       - /opt/traefik/acme.json:/acme.json
-#     environment:
-#       - CLOUDFLARE_EMAIL=$CLOUDFLARE_EMAIL
-#       - CLOUDFLARE_API_KEY=$CLOUDFLARE_API_KEY
-#   test-app:
-#     image: containous/whoami:v1.3.0
-#     labels:
-#       # - traefik.http.routers.my-app.rule=Host(`home.mccorkle.co`)
-#       - traefik.enable=true
-#       - traefik.http.routers.test-app.rule=Host(`test.mccorkle.co`)
-#       - traefik.http.routers.test-app.entrypoints=web
-
-
-
-
-
-# services:
-#   traefik:
-#     image: traefik:2.3
-#     restart: unless-stopped
-#     #...supressed
-#     command:
-#       - --entrypoints.websecure.http.tls.domains[0].main=$TRAEFIK_BASE_DNS
-#       - --entrypoints.websecure.http.tls.domains[0].sans=*.$TRAEFIK_BASE_DNS
-#       - --certificatesresolvers.cloudflare.acme.email=$TRAEFIK_ACME_EMAIL
-#       - --certificatesresolvers.cloudflare.acme.caServer=$TRAEFIK_ACME_CASERVER
-#       - --api.debug=$TRAEFIK_DEBUG
-#       - --log=$TRAEFIK_LOG
-#     #...supressed
-#     labels:
-#       #...supressed
-#       - traefik.http.routers.traefik.rule=Host(`$TRAEFIK_DASHBOARD_HOST`)
-#       - traefik.http.middlewares.traefik-auth.basicauth.users=$TRAEFIK_USER_PASS
-#     #...supressed
-#     environment:
-#       - CLOUDFLARE_EMAIL=$CLOUDFLARE_EMAIL
-#       - CLOUDFLARE_API_KEY=$CLOUDFLARE_API_KEY
-# #...supressed
-#     # command:
-#     #   - --entrypoints.web.address=:80
-#     #   - --providers.docker
-#     #   - --api.insecure
-#     ports:
-#       - "80:80"
-#       - "18080:8080"
-#     volumes:
-#       - "/var/run/docker.sock:/var/run/docker.sock:ro"
-#   my-app:
-#     image: containous/whoami:v1.3.0
-#     labels:
-#       - traefik.http.routers.my-app.rule=Host(`home.mccorkle.co`)
-
-
+  sonarr:
+    image: linuxserver/sonarr
+    container_name: sonarr
+    restart: unless-stopped
+    networks:
+      - t2_proxy
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - /mnt/docker/sonarr:/config
+      - /mnt/media:/mnt/media
+    environment:
+      PUID: '1013'
+      PGID: '1013'
+      TZ: $TZ
+    labels:
+      - "traefik.enable=true"
+      ## HTTP Routers Auth Bypass
+      - "traefik.http.routers.sonarr-rtr-bypass.entrypoints=https"
+      - "traefik.http.routers.sonarr-rtr-bypass.rule=Host(`sonarr.$DOMAINNAME`) && (Headers(`X-Api-Key`, `$SONARR_API_KEY`) || Query(`apikey`, `$SONARR_API_KEY`))"
+      - traefik.http.routers.sonarr-rtr-bypass.tls=true
+      - "traefik.http.routers.sonarr-rtr-bypass.priority=100"
+      ## HTTP Routers Auth
+      - "traefik.http.routers.sonarr-rtr.entrypoints=https"
+      - "traefik.http.routers.sonarr-rtr.rule=Host(`sonarr.$DOMAINNAME`)"
+      - traefik.http.routers.sonarr-rtr.tls=true
+      - "traefik.http.routers.sonarr-rtr.priority=99"
+      ## Middlewares
+      - "traefik.http.routers.sonarr-rtr-bypass.middlewares=chain-no-auth@file"
+      - "traefik.http.routers.sonarr-rtr.middlewares=chain-authelia@file"
+      ## HTTP Services
+      - "traefik.http.routers.sonarr-rtr.service=sonarr-svc"
+      - "traefik.http.routers.sonarr-rtr-bypass.service=sonarr-svc"
+      - "traefik.http.services.sonarr-svc.loadbalancer.server.port=8989"

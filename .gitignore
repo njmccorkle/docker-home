@@ -1,3 +1,12 @@
 .env
+secrets/*
+!secrets/cloudflare_email.example
+
+shared/.htapasswd
+
 traefik2/traefik.log
 traefik2/acme/acme.json
+
+authelia/*
+!authelia/configuration.yml
+!authelia/users_database.yml.example

@@ -1,7 +1,7 @@
 version: '2'
 services:
   unifi:
-    image: jacobalberty/unifi:stable
+    image: jacobalberty/unifi:latest
     restart: unless-stopped
     hostname: unifi
     environment:
