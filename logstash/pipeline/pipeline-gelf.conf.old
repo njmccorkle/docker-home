@@ -1,0 +1,13 @@
+input{ 
+    gelf{ 
+        # gelf port is 12201
+        use_tcp => true 
+    }
+} 
+
+output{
+    elasticsearch{
+        hosts => ["elasticsearch"] 
+    } 
+    # stdout{}
+}

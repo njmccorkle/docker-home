@@ -1,0 +1,11 @@
+# Generate password by running
+# docker run authelia/authelia:latest authelia hash-password PASSWORD
+
+users:
+  njmccorkle:
+    displayname: "Name"
+    password: "$argon2id"
+    email: email@address.com
+    groups:
+      - admins
+      - dev
