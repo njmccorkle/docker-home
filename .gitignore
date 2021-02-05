@@ -1,6 +1,7 @@
 .env
 secrets/*
-!secrets/cloudflare_email.example
+
+test-docker-compose.yml
 
 shared/.htapasswd
 

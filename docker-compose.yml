@@ -32,34 +32,79 @@ services:
     image: traefik:2.2.1 # the chevrotin tag refers to v2.2.x but introduced a breaking change in 2.2.2
     restart: unless-stopped
     command: # CLI arguments
+      # - --global.checkNewVersion=true
+      # - --global.sendAnonymousUsage=true
+      # - --entryPoints.http.address=:80
+      # - --entryPoints.https.address=:443
+      #   # Allow these IPs to set the X-Forwarded-* headers - Cloudflare IPs: https://www.cloudflare.com/ips/
+      # - --entrypoints.https.forwardedHeaders.trustedIPs=173.245.48.0/20,103.21.244.0/22,103.22.200.0/22,103.31.4.0/22,141.101.64.0/18,108.162.192.0/18,190.93.240.0/20,188.114.96.0/20,197.234.240.0/22,198.41.128.0/17,162.158.0.0/15,104.16.0.0/12,172.64.0.0/13,131.0.72.0/22
+      # - --entryPoints.traefik.address=:8080
+      # - --api=true
+      # - --log=true
+      # - --log.level=INFO # (Default: error) DEBUG, INFO, WARN, ERROR, FATAL, PANIC
+      # - --accessLog=true
+      # - --accessLog.filePath=/traefik.log
+      # - --accessLog.bufferingSize=100 # Configuring a buffer of 100 lines
+      # - --accessLog.filters.statusCodes=400-499
+      # - --providers.docker=true
+      # - --providers.docker.endpoint=unix:///var/run/docker.sock
+      # - --providers.docker.defaultrule=Host(`{{ index .Labels "com.docker.compose.service" }}.$DOMAINNAME`)
+      # - --providers.docker.exposedByDefault=false
+      # - --providers.docker.network=t2_proxy
+      # - --providers.docker.swarmMode=false
+      # - --providers.file.directory=/rules # Load dynamic configuration from one or more .toml or .yml files in a directory.
+      # - --providers.file.watch=true # Only works on top level files in the rules folder
+      # - --certificatesResolvers.dns-cloudflare.acme.caServer=https://acme-staging-v02.api.letsencrypt.org/directory # LetsEncrypt Staging Server - uncomment when testing
+      # - --certificatesResolvers.dns-cloudflare.acme.caServer=https://acme-v02.api.letsencrypt.org/directory # LetsEncrypt Production Server
+      # - --certificatesResolvers.dns-cloudflare.acme.email=/run/secrets/cloudflare_email
+      # - --certificatesResolvers.dns-cloudflare.acme.storage=/acme.json
+      # - --certificatesResolvers.dns-cloudflare.acme.dnsChallenge.provider=cloudflare
+      # - --certificatesResolvers.dns-cloudflare.acme.dnsChallenge.resolvers=1.1.1.1:53,1.0.0.1:53
       - --global.checkNewVersion=true
       - --global.sendAnonymousUsage=true
       - --entryPoints.http.address=:80
       - --entryPoints.https.address=:443
-        # Allow these IPs to set the X-Forwarded-* headers - Cloudflare IPs: https://www.cloudflare.com/ips/
+      # Allow these IPs to set the X-Forwarded-* headers - Cloudflare IPs: https://www.cloudflare.com/ips/
       - --entrypoints.https.forwardedHeaders.trustedIPs=173.245.48.0/20,103.21.244.0/22,103.22.200.0/22,103.31.4.0/22,141.101.64.0/18,108.162.192.0/18,190.93.240.0/20,188.114.96.0/20,197.234.240.0/22,198.41.128.0/17,162.158.0.0/15,104.16.0.0/12,172.64.0.0/13,131.0.72.0/22
       - --entryPoints.traefik.address=:8080
+      # - --entryPoints.ping.address=:8081
       - --api=true
+      # - --api.insecure=true
+      - --api.dashboard=true
+      #- --ping=true
+      #- --pilot.token=$TRAEFIK_PILOT_TOKEN
+      # - --serversTransport.insecureSkipVerify=true
       - --log=true
-      - --log.level=INFO # (Default: error) DEBUG, INFO, WARN, ERROR, FATAL, PANIC
+      - --log.level=WARN # (Default: error) DEBUG, INFO, WARN, ERROR, FATAL, PANIC
       - --accessLog=true
       - --accessLog.filePath=/traefik.log
       - --accessLog.bufferingSize=100 # Configuring a buffer of 100 lines
       - --accessLog.filters.statusCodes=400-499
       - --providers.docker=true
-      - --providers.docker.endpoint=unix:///var/run/docker.sock
-      - --providers.docker.defaultrule=Host(`{{ index .Labels "com.docker.compose.service" }}.$DOMAINNAME`)
+      - --providers.docker.endpoint=unix:///var/run/docker.sock # Use Docker Socket Proxy instead for improved security
+      # - --providers.docker.endpoint=tcp://socket-proxy:2375
+      # Automatically set Host rule for services
+      # - --providers.docker.defaultrule=Host(`{{ index .Labels "com.docker.compose.service" }}.$DOMAINNAME`)
       - --providers.docker.exposedByDefault=false
+      # - --entrypoints.https.http.middlewares=chain-oauth@file
+      - --entrypoints.https.http.tls.options=tls-opts@file
+      # Add dns-cloudflare as default certresolver for all services. Also enables TLS and no need to specify on individual services
+      - --entrypoints.https.http.tls.certresolver=dns-cloudflare
+      - --entrypoints.https.http.tls.domains[0].main=$DOMAINNAME
+      - --entrypoints.https.http.tls.domains[0].sans=*.$DOMAINNAME
+      # - --entrypoints.https.http.tls.domains[1].main=$DOMAIN # Pulls main cert for second domain
+      # - --entrypoints.https.http.tls.domains[1].sans=*.$DOMAIN # Pulls wildcard cert for second domain
       - --providers.docker.network=t2_proxy
       - --providers.docker.swarmMode=false
-      - --providers.file.directory=/rules # Load dynamic configuration from one or more .toml or .yml files in a directory.
+      - --providers.file.directory=/rules # Load dynamic configuration from one or more .toml or .yml files in a directory
+      # - --providers.file.filename=/path/to/file # Load dynamic configuration from a file
       - --providers.file.watch=true # Only works on top level files in the rules folder
       # - --certificatesResolvers.dns-cloudflare.acme.caServer=https://acme-staging-v02.api.letsencrypt.org/directory # LetsEncrypt Staging Server - uncomment when testing
-      - --certificatesResolvers.dns-cloudflare.acme.caServer=https://acme-v02.api.letsencrypt.org/directory # LetsEncrypt Production Server
-      - --certificatesResolvers.dns-cloudflare.acme.email=/run/secrets/cloudflare_email
+      - --certificatesResolvers.dns-cloudflare.acme.email=$CLOUDFLARE_EMAIL
       - --certificatesResolvers.dns-cloudflare.acme.storage=/acme.json
       - --certificatesResolvers.dns-cloudflare.acme.dnsChallenge.provider=cloudflare
       - --certificatesResolvers.dns-cloudflare.acme.dnsChallenge.resolvers=1.1.1.1:53,1.0.0.1:53
+      - --certificatesResolvers.dns-cloudflare.acme.dnsChallenge.delayBeforeCheck=90 # To delay DNS check and reduce LE hitrate
     # networks:
     #   t2_proxy:
     #     ipv4_address: 192.168.90.254 # You can specify a static IP
@@ -92,7 +137,33 @@ services:
     environment:
       - CF_API_EMAIL_FILE=/run/secrets/cloudflare_email
       - CF_API_KEY_FILE=/run/secrets/cloudflare_api_key
-    
+      # - CLOUDFLARE_EMAIL=/run/secrets/cloudflare_email
+    # labels:
+#       - "traefik.enable=true"
+#       # HTTP-to-HTTPS Redirect
+#       - "traefik.http.routers.http-catchall.entrypoints=http"
+#       - "traefik.http.routers.http-catchall.rule=HostRegexp(`{host:.+}`)"
+#       - "traefik.http.routers.http-catchall.middlewares=redirect-to-https"
+#       - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+
+#   # Routers
+#       # Traefik dashboard
+#       - "traefik.http.routers.traefik-rtr.entrypoints=https"
+#       - "traefik.http.routers.traefik-rtr.rule=Host(`traefik.$DOMAINNAME`)"
+#       - "traefik.http.routers.traefik-rtr.tls=true"
+#       - "traefik.http.routers.traefik-rtr.tls.certresolver=dns-cloudflare" # Comment out this line after first run of traefik to force the use of wildcard certs
+#       - "traefik.http.routers.traefik-rtr.tls.domains[0].main=$DOMAINNAME"
+#       - "traefik.http.routers.traefik-rtr.tls.domains[0].sans=*.$DOMAINNAME"
+# #      - "traefik.http.routers.traefik-rtr.tls.domains[1].main=$SECONDDOMAINNAME" # Pulls main cert for second domain
+# #      - "traefik.http.routers.traefik-rtr.tls.domains[1].sans=*.$SECONDDOMAINNAME" # Pulls wildcard cert for second domain
+      #- "autoheal=true"
+  # Services
+      # API
+      # - "traefik.http.routers.traefik-rtr.service=api@internal"
+
+  # Middlewares
+      # - "traefik.http.routers.traefik-rtr.middlewares=chain-basic-auth@file" 
+
     labels:
       - "traefik.enable=true"
       # HTTP-to-HTTPS Redirect
@@ -100,17 +171,17 @@ services:
       - "traefik.http.routers.http-catchall.rule=HostRegexp(`{host:.+}`)"
       - "traefik.http.routers.http-catchall.middlewares=redirect-to-https"
       - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
-
-  # Routers
-      # Traefik dashboard
+      # HTTP Routers
       - "traefik.http.routers.traefik-rtr.entrypoints=https"
       - "traefik.http.routers.traefik-rtr.rule=Host(`traefik.$DOMAINNAME`)"
-      - "traefik.http.routers.traefik-rtr.tls=true"
-      - "traefik.http.routers.traefik-rtr.tls.certresolver=dns-cloudflare" # Comment out this line after first run of traefik to force the use of wildcard certs
-      - "traefik.http.routers.traefik-rtr.tls.domains[0].main=$DOMAINNAME"
-      - "traefik.http.routers.traefik-rtr.tls.domains[0].sans=*.$DOMAINNAME"
-#      - "traefik.http.routers.traefik-rtr.tls.domains[1].main=$SECONDDOMAINNAME" # Pulls main cert for second domain
-#      - "traefik.http.routers.traefik-rtr.tls.domains[1].sans=*.$SECONDDOMAINNAME" # Pulls wildcard cert for second domain
+      ## Services - API
+      - "traefik.http.routers.traefik-rtr.service=api@internal"
+      ## Healthcheck/ping
+      #- "traefik.http.routers.ping.rule=Host(`traefik.$DOMAINNAME`) && Path(`/ping`)"
+      #- "traefik.http.routers.ping.tls=true"
+      #- "traefik.http.routers.ping.service=ping@internal"
+      ## Middlewares
+      - "traefik.http.routers.traefik-rtr.middlewares=chain-authelia@file"
 
       # Heatermeter
       - "traefik.http.routers.heatermeter-rtr.entrypoints=https"
@@ -123,13 +194,6 @@ services:
       - "traefik.http.routers.homeassistant-rtr.service=homeassistant-svc@file"
       - "traefik.http.routers.homeassistant-rtr.rule=Host(`homeassistant.$DOMAINNAME`)"
       - "traefik.http.routers.homeassistant-rtr.tls=true"
-
-  # Services
-      # API
-      - "traefik.http.routers.traefik-rtr.service=api@internal"
-
-  # Middlewares
-      - "traefik.http.routers.traefik-rtr.middlewares=chain-basic-auth@file" 
 
   testApp:
     container_name: testApp
@@ -171,10 +235,8 @@ services:
       - AUTHELIA_NOTIFIER_SMTP_PASSWORD_FILE=/run/secrets/authelia_notifier_smtp_password
       - AUTHELIA_JWT_SECRET_FILE=/run/secrets/authelia_jwt_secret
       # - CF_API_KEY=$CLOUDFLARE_API_KEY
-      
       # - AUTHELIA_SESSION_SECRET_FILE=/run/secrets/authelia_session_secret
       # - AUTHELIA_STORAGE_MYSQL_PASSWORD_FILE=/run/secrets/authelia_storage_mysql_password
-      # - 
       # - AUTHELIA_DUO_API_SECRET_KEY_FILE=/run/secrets/authelia_duo_api_secret_key
     secrets:
       - authelia_notifier_smtp_password
@@ -247,14 +309,6 @@ services:
       PUID: '1013'
       PGID: '1013'
       TZ: $TZ
-    # labels:
-    #   - traefik.enable=true
-    #   - traefik.http.routers.couchpotato-rtr.entrypoints=https
-    #   - traefik.http.routers.couchpotato-rtr.rule=Host(`couchpotato.$DOMAINNAME`)
-    #   - traefik.http.routers.couchpotato-rtr.tls=true
-    #   # - traefik.http.routers.couchpotato-rtr.middlewares=chain-no-auth@file
-    #   - traefik.http.routers.couchpotato-rtr.middlewares=chain-authelia@file
-    #   - traefik.http.services.couchpotato-svc.loadbalancer.server.port=5050
     labels:
       - "traefik.enable=true"
       ## HTTP Routers Auth Bypass
@@ -311,4 +365,3 @@ services:
       - "traefik.http.services.sonarr-svc.loadbalancer.server.port=8989"
 
 
-      
