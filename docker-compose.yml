@@ -207,6 +207,15 @@ services:
     volumes:
       - /dev/net:/dev/net:z # tun device
       - $DOCKERDIR/openvpn:/vpn # OpenVPN configuration
+      # /vpn should contain: ca.*.crt, crl.*.pem
+      # move file for PIA region into folder and rename as vpn.conf
+      # enable these options:
+        # auth-user-pass /vpn/vpn.auth  # file path inside docker container
+        # disable-occ
+        # keepalive 10 30
+        # pull-filter ignore "auth-token"
+      # disable persist-tun (to completely reset VPN connection on failure)
+      # vpn.auth is file with username on first line, password on second
     # security_opt:
     #   - label:disable
     networks:
