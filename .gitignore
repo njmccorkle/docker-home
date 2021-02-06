@@ -11,3 +11,5 @@ traefik2/acme/acme.json
 authelia/*
 !authelia/configuration.yml
 !authelia/users_database.yml.example
+
+openvpn/*

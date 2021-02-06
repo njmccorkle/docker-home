@@ -32,34 +32,6 @@ services:
     image: traefik:2.2.1 # the chevrotin tag refers to v2.2.x but introduced a breaking change in 2.2.2
     restart: unless-stopped
     command: # CLI arguments
-      # - --global.checkNewVersion=true
-      # - --global.sendAnonymousUsage=true
-      # - --entryPoints.http.address=:80
-      # - --entryPoints.https.address=:443
-      #   # Allow these IPs to set the X-Forwarded-* headers - Cloudflare IPs: https://www.cloudflare.com/ips/
-      # - --entrypoints.https.forwardedHeaders.trustedIPs=173.245.48.0/20,103.21.244.0/22,103.22.200.0/22,103.31.4.0/22,141.101.64.0/18,108.162.192.0/18,190.93.240.0/20,188.114.96.0/20,197.234.240.0/22,198.41.128.0/17,162.158.0.0/15,104.16.0.0/12,172.64.0.0/13,131.0.72.0/22
-      # - --entryPoints.traefik.address=:8080
-      # - --api=true
-      # - --log=true
-      # - --log.level=INFO # (Default: error) DEBUG, INFO, WARN, ERROR, FATAL, PANIC
-      # - --accessLog=true
-      # - --accessLog.filePath=/traefik.log
-      # - --accessLog.bufferingSize=100 # Configuring a buffer of 100 lines
-      # - --accessLog.filters.statusCodes=400-499
-      # - --providers.docker=true
-      # - --providers.docker.endpoint=unix:///var/run/docker.sock
-      # - --providers.docker.defaultrule=Host(`{{ index .Labels "com.docker.compose.service" }}.$DOMAINNAME`)
-      # - --providers.docker.exposedByDefault=false
-      # - --providers.docker.network=t2_proxy
-      # - --providers.docker.swarmMode=false
-      # - --providers.file.directory=/rules # Load dynamic configuration from one or more .toml or .yml files in a directory.
-      # - --providers.file.watch=true # Only works on top level files in the rules folder
-      # - --certificatesResolvers.dns-cloudflare.acme.caServer=https://acme-staging-v02.api.letsencrypt.org/directory # LetsEncrypt Staging Server - uncomment when testing
-      # - --certificatesResolvers.dns-cloudflare.acme.caServer=https://acme-v02.api.letsencrypt.org/directory # LetsEncrypt Production Server
-      # - --certificatesResolvers.dns-cloudflare.acme.email=/run/secrets/cloudflare_email
-      # - --certificatesResolvers.dns-cloudflare.acme.storage=/acme.json
-      # - --certificatesResolvers.dns-cloudflare.acme.dnsChallenge.provider=cloudflare
-      # - --certificatesResolvers.dns-cloudflare.acme.dnsChallenge.resolvers=1.1.1.1:53,1.0.0.1:53
       - --global.checkNewVersion=true
       - --global.sendAnonymousUsage=true
       - --entryPoints.http.address=:80
@@ -87,7 +59,7 @@ services:
       # - --providers.docker.defaultrule=Host(`{{ index .Labels "com.docker.compose.service" }}.$DOMAINNAME`)
       - --providers.docker.exposedByDefault=false
       # - --entrypoints.https.http.middlewares=chain-oauth@file
-      - --entrypoints.https.http.tls.options=tls-opts@file
+      # - --entrypoints.https.http.tls.options=tls-opts@file
       # Add dns-cloudflare as default certresolver for all services. Also enables TLS and no need to specify on individual services
       - --entrypoints.https.http.tls.certresolver=dns-cloudflare
       - --entrypoints.https.http.tls.domains[0].main=$DOMAINNAME
@@ -137,33 +109,6 @@ services:
     environment:
       - CF_API_EMAIL_FILE=/run/secrets/cloudflare_email
       - CF_API_KEY_FILE=/run/secrets/cloudflare_api_key
-      # - CLOUDFLARE_EMAIL=/run/secrets/cloudflare_email
-    # labels:
-#       - "traefik.enable=true"
-#       # HTTP-to-HTTPS Redirect
-#       - "traefik.http.routers.http-catchall.entrypoints=http"
-#       - "traefik.http.routers.http-catchall.rule=HostRegexp(`{host:.+}`)"
-#       - "traefik.http.routers.http-catchall.middlewares=redirect-to-https"
-#       - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
-
-#   # Routers
-#       # Traefik dashboard
-#       - "traefik.http.routers.traefik-rtr.entrypoints=https"
-#       - "traefik.http.routers.traefik-rtr.rule=Host(`traefik.$DOMAINNAME`)"
-#       - "traefik.http.routers.traefik-rtr.tls=true"
-#       - "traefik.http.routers.traefik-rtr.tls.certresolver=dns-cloudflare" # Comment out this line after first run of traefik to force the use of wildcard certs
-#       - "traefik.http.routers.traefik-rtr.tls.domains[0].main=$DOMAINNAME"
-#       - "traefik.http.routers.traefik-rtr.tls.domains[0].sans=*.$DOMAINNAME"
-# #      - "traefik.http.routers.traefik-rtr.tls.domains[1].main=$SECONDDOMAINNAME" # Pulls main cert for second domain
-# #      - "traefik.http.routers.traefik-rtr.tls.domains[1].sans=*.$SECONDDOMAINNAME" # Pulls wildcard cert for second domain
-      #- "autoheal=true"
-  # Services
-      # API
-      # - "traefik.http.routers.traefik-rtr.service=api@internal"
-
-  # Middlewares
-      # - "traefik.http.routers.traefik-rtr.middlewares=chain-basic-auth@file" 
-
     labels:
       - "traefik.enable=true"
       # HTTP-to-HTTPS Redirect
@@ -180,6 +125,7 @@ services:
       #- "traefik.http.routers.ping.rule=Host(`traefik.$DOMAINNAME`) && Path(`/ping`)"
       #- "traefik.http.routers.ping.tls=true"
       #- "traefik.http.routers.ping.service=ping@internal"
+
       ## Middlewares
       - "traefik.http.routers.traefik-rtr.middlewares=chain-authelia@file"
 
@@ -211,11 +157,7 @@ services:
       - "traefik.http.routers.testApp-rtr.tls=true"
       ## Middlewares
       - "traefik.http.routers.testApp-rtr.middlewares=chain-no-auth@file" # No Authentication
-      # - "traefik.http.routers.testApp-rtr.middlewares=chain-basic-auth@file" # Basic Authentication
-      # - "traefik.http.routers.testApp-rtr.middlewares=chain-oauth@file" # Google OAuth 2.0
-      ## HTTP Services
-      # - "traefik.http.routers.testApp-rtr.service=testApp-svc"
-      # - "traefik.http.services.testApp-svc.loadbalancer.server.port=9000"
+      # - "traefik.http.routers.testApp-rtr.middlewares=chain-authelia@file" # Google OAuth 2.0
 
   # Authelia (Lite) - Self-Hosted Single Sign-On and Two-Factor Authentication
   authelia:
@@ -270,8 +212,8 @@ services:
       - /mnt/docker/sabnzbd:/config
       - /mnt/media:/mnt/media
     environment:
-      PUID: '1013'
-      PGID: '1013'
+      PUID: $PUID
+      PGID: $PGID
       TZ: $TZ
     stdin_open: true
     labels:
@@ -306,8 +248,8 @@ services:
       - /mnt/docker/couchpotato:/config
       - /mnt/media:/mnt/media
     environment:
-      PUID: '1013'
-      PGID: '1013'
+      PUID: $PUID
+      PGID: $PGID
       TZ: $TZ
     labels:
       - "traefik.enable=true"
@@ -341,8 +283,8 @@ services:
       - /mnt/docker/sonarr:/config
       - /mnt/media:/mnt/media
     environment:
-      PUID: '1013'
-      PGID: '1013'
+      PUID: $PUID
+      PGID: $PGID
       TZ: $TZ
     labels:
       - "traefik.enable=true"
@@ -364,4 +306,39 @@ services:
       - "traefik.http.routers.sonarr-rtr-bypass.service=sonarr-svc"
       - "traefik.http.services.sonarr-svc.loadbalancer.server.port=8989"
 
-
+  radarr:
+    # image: aront/radarr #for mp4_automator support
+    image: linuxserver/radarr:latest #:nightly
+    container_name: radarr
+    restart: unless-stopped
+    networks:
+      - t2_proxy
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - /mnt/docker/radarr:/config
+      - /mnt/media:/mnt/media
+      # - $DOCKERDIR/shared/mp4_automator:/config_mp4_automator
+      - "/etc/localtime:/etc/localtime:ro"
+    environment:
+      PUID: $PUID
+      PGID: $PGID
+      TZ: $TZ
+    labels:
+      - "traefik.enable=true"
+      ## HTTP Routers Auth Bypass
+      - "traefik.http.routers.radarr-rtr-bypass.entrypoints=https"
+      - "traefik.http.routers.radarr-rtr-bypass.rule=Host(`radarr.$DOMAINNAME`) && (Headers(`X-Api-Key`, `$RADARR_API_KEY`) || Query(`apikey`, `$RADARR_API_KEY`))"
+      - "traefik.http.routers.radarr-rtr-bypass.priority=100"
+      ## HTTP Routers Auth
+      - "traefik.http.routers.radarr-rtr.entrypoints=https"
+      - "traefik.http.routers.radarr-rtr.rule=Host(`radarr.$DOMAINNAME`)"
+      - "traefik.http.routers.radarr-rtr.priority=99"
+      ## Middlewares
+      - "traefik.http.routers.radarr-rtr-bypass.middlewares=chain-no-auth@file"
+      # - "traefik.http.routers.radarr-rtr.middlewares=chain-authelia@file"
+      - "traefik.http.routers.radarr-rtr.middlewares=chain-no-auth@file"
+      ## HTTP Services
+      - "traefik.http.routers.radarr-rtr.service=radarr-svc"
+      - "traefik.http.routers.radarr-rtr-bypass.service=radarr-svc"
+      - "traefik.http.services.radarr-svc.loadbalancer.server.port=7878"
