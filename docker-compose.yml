@@ -198,6 +198,28 @@ services:
       - "traefik.http.routers.authelia-rtr.service=authelia-svc"
       - "traefik.http.services.authelia-svc.loadbalancer.server.port=9091"
   
+  portainer:
+    image: portainer/portainer-ce:latest
+    command: -H unix:///var/run/docker.sock
+    restart: always
+    networks:
+      - t2_proxy
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /mnt/docker/portainer:/data
+    labels:
+      - "traefik.enable=true"
+      ## HTTP Routers
+      - "traefik.http.routers.portainer-rtr.entrypoints=https"
+      - "traefik.http.routers.portainer-rtr.rule=Host(`portainer.$DOMAINNAME`)"
+      - "traefik.http.routers.portainer-rtr.tls=true"
+      ## Middlewares
+      - "traefik.http.routers.portainer-rtr.middlewares=chain-authelia@file"
+      # - "traefik.http.routers.portainer-rtr.middlewares=chain-no-auth@file"
+      ## HTTP Services
+      - "traefik.http.routers.portainer-rtr.service=portainer-svc"
+      - "traefik.http.services.portainer-svc.loadbalancer.server.port=9000"
+
   openvpn:
     container_name: openvpn
     image: dperson/openvpn-client:latest
@@ -222,6 +244,7 @@ services:
       - t2_proxy
     ports:
       - 8112:8112 # port for deluge web UI to be reachable from local network
+      - 9117:9117 # jackett
     command: "-r 10.1.1.0/24" # route local network traffic
 
   deluge:
@@ -250,6 +273,39 @@ services:
       ## HTTP Services
       - "traefik.http.routers.deluge-rtr.service=deluge-svc"
       - "traefik.http.services.deluge-svc.loadbalancer.server.port=8112"
+  
+  jackett:
+    image: linuxserver/jackett:latest
+    container_name: jackett
+    depends_on: 
+      - openvpn
+    restart: always
+    network_mode: service:openvpn # run on the vpn network
+    # network_mode: container:transmission-vpn
+    # networks:
+    #   - t2_proxy
+    security_opt:
+      - no-new-privileges:true
+    # ports:
+    #   - "$JACKETT_PORT:9117"
+    volumes:
+      - /nnt/docker/jackett:/config
+      - /mnt/media:/mnt/media
+      - "/etc/localtime:/etc/localtime:ro"
+    environment:
+      PUID: $PUID
+      PGID: $PGID
+      TZ: $TZ
+    labels:
+      - "traefik.enable=true"
+      ## HTTP Routers
+      - "traefik.http.routers.jackett-rtr.entrypoints=https"
+      - "traefik.http.routers.jackett-rtr.rule=Host(`jackett.$DOMAINNAME`)"
+      ## Middlewares
+      - "traefik.http.routers.jackett-rtr.middlewares=chain-authelia@file"
+      ## HTTP Services
+      - "traefik.http.routers.jackett-rtr.service=jackett-svc"
+      - "traefik.http.services.jackett-svc.loadbalancer.server.port=9117"
 
   sabnzbd:
     image: linuxserver/sabnzbd
@@ -389,8 +445,7 @@ services:
       - "traefik.http.routers.radarr-rtr.priority=99"
       ## Middlewares
       - "traefik.http.routers.radarr-rtr-bypass.middlewares=chain-no-auth@file"
-      # - "traefik.http.routers.radarr-rtr.middlewares=chain-authelia@file"
-      - "traefik.http.routers.radarr-rtr.middlewares=chain-no-auth@file"
+      - "traefik.http.routers.radarr-rtr.middlewares=chain-authelia@file"
       ## HTTP Services
       - "traefik.http.routers.radarr-rtr.service=radarr-svc"
       - "traefik.http.routers.radarr-rtr-bypass.service=radarr-svc"
