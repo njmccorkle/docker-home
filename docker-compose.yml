@@ -298,14 +298,30 @@ services:
       TZ: $TZ
     labels:
       - "traefik.enable=true"
-      ## HTTP Routers
+      ## HTTP Routers Auth Bypass
+      - "traefik.http.routers.jackett-rtr-bypass.entrypoints=https"
+      - "traefik.http.routers.jackett-rtr-bypass.rule=Host(`jackett.$DOMAINNAME`) && (Headers(`X-Api-Key`, `$JACKETT_API_KEY`) || Query(`apikey`, `$JACKETT_API_KEY`))"
+      - "traefik.http.routers.jackett-rtr-bypass.priority=100"
+      ## HTTP Routers Auth
       - "traefik.http.routers.jackett-rtr.entrypoints=https"
       - "traefik.http.routers.jackett-rtr.rule=Host(`jackett.$DOMAINNAME`)"
+      - "traefik.http.routers.jackett-rtr.priority=99"
       ## Middlewares
+      # - "traefik.http.routers.jackett-rtr-bypass.middlewares=chain-no-auth@file"
       - "traefik.http.routers.jackett-rtr.middlewares=chain-authelia@file"
       ## HTTP Services
       - "traefik.http.routers.jackett-rtr.service=jackett-svc"
-      - "traefik.http.services.jackett-svc.loadbalancer.server.port=9117"
+      - "traefik.http.routers.jackett-rtr-bypass.service=jackett-svc"
+      - "traefik.http.services.jackett-svc.loadbalancer.server.port=9117"# labels:
+    #   - "traefik.enable=true"
+    #   ## HTTP Routers
+    #   - "traefik.http.routers.jackett-rtr.entrypoints=https"
+    #   - "traefik.http.routers.jackett-rtr.rule=Host(`jackett.$DOMAINNAME`)"
+    #   ## Middlewares
+    #   - "traefik.http.routers.jackett-rtr.middlewares=chain-authelia@file"
+    #   ## HTTP Services
+    #   - "traefik.http.routers.jackett-rtr.service=jackett-svc"
+    #   - "traefik.http.services.jackett-svc.loadbalancer.server.port=9117"
 
   sabnzbd:
     image: linuxserver/sabnzbd
@@ -338,7 +354,7 @@ services:
       - traefik.http.routers.sabnzbd-rtr.tls=true
       - "traefik.http.routers.sabnzbd-rtr.priority=99"
       # Middlewares
-      - "traefik.http.routers.sabnzbd-rtr-bypass.middlewares=chain-no-auth@file"
+      # - "traefik.http.routers.sabnzbd-rtr-bypass.middlewares=chain-no-auth@file"
       - "traefik.http.routers.sabnzbd-rtr.middlewares=chain-authelia@file"
       # HTTP Services
       - "traefik.http.routers.sabnzbd-rtr.service=sabnzbd-svc"
@@ -373,7 +389,7 @@ services:
       - traefik.http.routers.couchpotato-rtr.tls=true
       - "traefik.http.routers.couchpotato-rtr.priority=99"
       ## Middlewares
-      - "traefik.http.routers.couchpotato-rtr-bypass.middlewares=chain-no-auth@file"
+      # - "traefik.http.routers.couchpotato-rtr-bypass.middlewares=chain-no-auth@file"
       - "traefik.http.routers.couchpotato-rtr.middlewares=chain-authelia@file"
       ## HTTP Services
       - "traefik.http.routers.couchpotato-rtr.service=couchpotato-svc"
@@ -408,7 +424,7 @@ services:
       - traefik.http.routers.sonarr-rtr.tls=true
       - "traefik.http.routers.sonarr-rtr.priority=99"
       ## Middlewares
-      - "traefik.http.routers.sonarr-rtr-bypass.middlewares=chain-no-auth@file"
+      # - "traefik.http.routers.sonarr-rtr-bypass.middlewares=chain-no-auth@file"
       - "traefik.http.routers.sonarr-rtr.middlewares=chain-authelia@file"
       ## HTTP Services
       - "traefik.http.routers.sonarr-rtr.service=sonarr-svc"
@@ -444,7 +460,7 @@ services:
       - "traefik.http.routers.radarr-rtr.rule=Host(`radarr.$DOMAINNAME`)"
       - "traefik.http.routers.radarr-rtr.priority=99"
       ## Middlewares
-      - "traefik.http.routers.radarr-rtr-bypass.middlewares=chain-no-auth@file"
+      # - "traefik.http.routers.radarr-rtr-bypass.middlewares=chain-no-auth@file"
       - "traefik.http.routers.radarr-rtr.middlewares=chain-authelia@file"
       ## HTTP Services
       - "traefik.http.routers.radarr-rtr.service=radarr-svc"
