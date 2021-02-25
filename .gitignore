@@ -13,3 +13,5 @@ authelia/*
 !authelia/users_database.yml.example
 
 openvpn/*
+
+organizr/*
